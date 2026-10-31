@@ -1,5 +1,9 @@
 import { Analytics } from '@vercel/analytics/next'
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta' })
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -37,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`${inter.variable} ${jakarta.variable} antialiased`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

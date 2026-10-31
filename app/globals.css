@@ -157,7 +157,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background: #080b16;
+  }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-inter), sans-serif;
+  }
+  h1, h2, h3, h4, button, label {
+    font-family: var(--font-jakarta), var(--font-inter), sans-serif;
   }
 }
