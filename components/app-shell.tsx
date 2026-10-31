@@ -4,67 +4,15 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { BookOpen, CalendarDays, ChevronRight, ClipboardCheck, LayoutDashboard, LogOut, Menu, Sparkles, X, Zap } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/quiz", label: "Quiz generator", icon: ClipboardCheck },
-  { href: "/flashcards", label: "Flashcards", icon: BookOpen },
-  { href: "/likely-questions", label: "Likely questions", icon: Sparkles },
-  { href: "/planner", label: "Study planner", icon: CalendarDays },
-  { href: "/progress", label: "Progress", icon: Zap },
-]
+const navItems = [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, { href: "/quiz", label: "Quiz generator", icon: ClipboardCheck }, { href: "/flashcards", label: "Flashcards", icon: BookOpen }, { href: "/likely-questions", label: "Likely questions", icon: Sparkles }, { href: "/planner", label: "Study planner", icon: CalendarDays }, { href: "/progress", label: "Progress", icon: Zap }]
 
 export function AppShell({ children, title, description }: { children: React.ReactNode; title?: string; description?: string }) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState("Student")
-
-  useEffect(() => {
-    const user = localStorage.getItem("quizme_user")
-    if (!user) router.replace("/login")
-    else setName(JSON.parse(user).name || "Student")
-  }, [router])
-
-  function logout() {
-    localStorage.removeItem("quizme_user")
-    router.push("/")
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex items-center justify-between px-2">
-          <Link href="/dashboard" className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-slate-950"><span className="grid size-9 place-items-center rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-200"><Sparkles className="size-4" /></span>QuizMe</Link>
-          <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 lg:hidden" aria-label="Close menu"><X className="size-5" /></button>
-        </div>
-        <div className="mt-10 px-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Workspace</div>
-        <nav className="mt-3 flex flex-col gap-1" aria-label="Main navigation">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const active = pathname === item.href
-            return <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${active ? "bg-violet-50 text-violet-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}><Icon className="size-4" />{item.label}{active && <ChevronRight className="ml-auto size-4" />}</Link>
-          })}
-        </nav>
-        <div className="mt-auto rounded-2xl bg-slate-950 p-4 text-white">
-          <div className="mb-3 grid size-9 place-items-center rounded-xl bg-violet-500"><Zap className="size-4" /></div>
-          <p className="text-sm font-bold">Keep your streak alive</p><p className="mt-1 text-xs leading-5 text-slate-400">You&apos;re doing better than 82% of students this week.</p>
-        </div>
-        <button onClick={logout} className="mt-4 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900"><LogOut className="size-4" />Log out</button>
-      </aside>
-      {open && <button className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden" onClick={() => setOpen(false)} aria-label="Close navigation" />}
-      <main className="lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-5 backdrop-blur md:px-10">
-          <button onClick={() => setOpen(true)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open menu"><Menu className="size-5" /></button>
-          <div className="hidden lg:block"><p className="text-sm font-bold text-slate-950">{title || "Your study space"}</p><p className="text-xs text-slate-400">{description || "Make every study session count."}</p></div>
-          <div className="ml-auto flex items-center gap-3"><div className="hidden text-right sm:block"><p className="text-sm font-bold text-slate-900">{name}</p><p className="text-xs text-slate-400">Focused learner</p></div><div className="grid size-10 place-items-center rounded-full bg-violet-100 text-sm font-extrabold text-violet-700">{name.slice(0, 2).toUpperCase()}</div></div>
-        </header>
-        <div className="mx-auto max-w-7xl px-5 py-8 md:px-10 md:py-10">{children}</div>
-      </main>
-    </div>
-  )
+  const pathname = usePathname(); const router = useRouter(); const [open, setOpen] = useState(false); const [name, setName] = useState("Student")
+  useEffect(() => { const supabase = createClient(); supabase.auth.getUser().then(({ data }) => { if (!data.user) { router.replace("/login"); return } const displayName = data.user.user_metadata?.display_name || data.user.email?.split("@")[0] || "Student"; setName(displayName); localStorage.setItem("quizme_user", JSON.stringify({ id: data.user.id, name: displayName, email: data.user.email })) }) }, [router])
+  async function logout() { await createClient().auth.signOut(); localStorage.removeItem("quizme_user"); router.push("/") }
+  return <div className="min-h-screen bg-slate-50 text-slate-900"><aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}><div className="flex items-center justify-between px-2"><Link href="/dashboard" className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-slate-950"><span className="grid size-9 place-items-center rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-200"><Sparkles className="size-4" /></span>QuizMe</Link><button onClick={() => setOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 lg:hidden" aria-label="Close menu"><X className="size-5" /></button></div><div className="mt-10 px-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Workspace</div><nav className="mt-3 flex flex-col gap-1" aria-label="Main navigation">{navItems.map((item) => { const Icon = item.icon; const active = pathname === item.href; return <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${active ? "bg-violet-50 text-violet-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}><Icon className="size-4" />{item.label}{active && <ChevronRight className="ml-auto size-4" />}</Link> })}</nav><div className="mt-auto rounded-2xl bg-slate-950 p-4 text-white"><div className="mb-3 grid size-9 place-items-center rounded-xl bg-violet-500"><Zap className="size-4" /></div><p className="text-sm font-bold">Keep your streak alive</p><p className="mt-1 text-xs leading-5 text-slate-400">Your private study space is synced to your account.</p></div><button onClick={logout} className="mt-4 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900"><LogOut className="size-4" />Log out</button></aside>{open && <button className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden" onClick={() => setOpen(false)} aria-label="Close navigation" />}<main className="lg:pl-72"><header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-5 backdrop-blur md:px-10"><button onClick={() => setOpen(true)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open menu"><Menu className="size-5" /></button><div className="hidden lg:block"><p className="text-sm font-bold text-slate-950">{title || "Your study space"}</p><p className="text-xs text-slate-400">{description || "Make every study session count."}</p></div><div className="ml-auto flex items-center gap-3"><div className="hidden text-right sm:block"><p className="text-sm font-bold text-slate-900">{name}</p><p className="text-xs text-slate-400">Focused learner</p></div><div className="grid size-10 place-items-center rounded-full bg-violet-100 text-sm font-extrabold text-violet-700">{name.slice(0, 2).toUpperCase()}</div></div></header><div className="mx-auto max-w-7xl px-5 py-8 md:px-10 md:py-10">{children}</div></main></div>
 }
 
-export function SectionHeading({ eyebrow, title, description }: { eyebrow?: string; title: string; description?: string }) {
-  return <div className="mb-8"><p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-violet-600">{eyebrow}</p><h1 className="text-3xl font-extrabold tracking-tight text-slate-950 md:text-4xl">{title}</h1>{description && <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{description}</p>}</div>
-}
+export function SectionHeading({ eyebrow, title, description }: { eyebrow?: string; title: string; description?: string }) { return <div className="mb-8"><p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-violet-600">{eyebrow}</p><h1 className="text-3xl font-extrabold tracking-tight text-slate-950 md:text-4xl">{title}</h1>{description && <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{description}</p>}</div> }
