@@ -1,19 +1,284 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
-import { AppShell, SectionHeading } from "@/components/app-shell"
-import { getExams, getQuizResults, type Exam, type QuizResult } from "@/lib/study-storage"
-import { ArrowUpRight, BookOpen, CalendarDays, ChevronRight, ClipboardCheck, Clock3, FileText, Flame, Sparkles, Target, TrendingUp } from "lucide-react"
-import { PdfUpload } from "@/components/pdf-upload"
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { AppShell, SectionHeading } from "@/components/app-shell";
+import { StudyHeatmap } from "@/components/study-heatmap"
+import { getDayCounts, getStreaks } from "@/lib/streak"
+import {getLocalUser} from "@/lib/local-auth";
+import {
+  getExams,
+  getQuizResults,
+  type Exam,
+  type QuizResult,
+} from "@/lib/study-storage";
+import {
+  ArrowUpRight,
+  BookOpen,
+  CalendarDays,
+  ChevronRight,
+  ClipboardCheck,
+  Clock3,
+  FileText,
+  Flame,
+  Sparkles,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import { PdfUpload } from "@/components/pdf-upload";
 
-const quickLinks = [{ href: "/quiz", icon: ClipboardCheck, label: "Quiz generator", text: "Turn notes into practice" }, { href: "/flashcards", icon: BookOpen, label: "Flashcards", text: "Review in quick bursts" }, { href: "/likely-questions", icon: Sparkles, label: "Likely questions", text: "Focus on what matters" }, { href: "/planner", icon: CalendarDays, label: "Study planner", text: "Plan your week" }]
+const quickLinks = [
+  {
+    href: "/quiz",
+    icon: ClipboardCheck,
+    label: "Quiz generator",
+    text: "Turn notes into practice",
+  },
+  {
+    href: "/flashcards",
+    icon: BookOpen,
+    label: "Flashcards",
+    text: "Review in quick bursts",
+  },
+  {
+    href: "/likely-questions",
+    icon: Sparkles,
+    label: "Likely questions",
+    text: "Focus on what matters",
+  },
+  {
+    href: "/planner",
+    icon: CalendarDays,
+    label: "Study planner",
+    text: "Plan your week",
+  },
+];
 export default function Dashboard() {
-  const [exams, setExams] = useState<Exam[]>([]); const [results, setResults] = useState<QuizResult[]>([])
-  useEffect(() => { setExams(getExams()); setResults(getQuizResults()) }, [])
-  const average = results.length ? Math.round(results.reduce((sum, item) => sum + (item.score / item.total) * 100, 0) / results.length) : 0
-  const upcoming = useMemo(() => exams.filter((exam) => new Date(`${exam.date}T12:00:00`).getTime() >= Date.now()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3), [exams])
-  const days = (date: string) => Math.max(0, Math.ceil((new Date(`${date}T12:00:00`).getTime() - Date.now()) / 86400000))
-  return <AppShell title="Dashboard" description="Make every study session count."><SectionHeading eyebrow="Your study space" title="Good morning, Alex." description="You&apos;re building great momentum. Here&apos;s your study snapshot." /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Stat icon={Flame} label="Study streak" value="12 days" note="Best: 18 days" color="orange" /><Stat icon={ClipboardCheck} label="Quizzes taken" value={`${results.length}`} note="Saved to Progress" color="violet" /><Stat icon={TrendingUp} label="Average score" value={`${average}%`} note={results.length ? "Across saved quizzes" : "Take your first quiz"} color="emerald" /><Stat icon={Clock3} label="Next exam" value={upcoming[0] ? `${days(upcoming[0].date)} days` : "—"} note={upcoming[0]?.course || "Add one in Planner"} color="sky" /></div><div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]"><PdfUpload /><div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="font-extrabold text-slate-950">Upcoming exams</h2><p className="mt-1 text-sm text-slate-400">Stay ahead of every deadline.</p></div><Link href="/planner" className="text-sm font-bold text-violet-600 hover:text-violet-700">View planner <ArrowUpRight className="ml-1 inline size-4" /></Link></div><div className="mt-6 flex flex-col gap-3">{upcoming.length ? upcoming.map((exam, index) => <div key={exam.id} className="flex items-center gap-4 rounded-xl border border-slate-100 p-4 transition hover:border-violet-100 hover:bg-violet-50/30"><div className={`grid size-11 place-items-center rounded-xl ${index === 0 ? "bg-orange-50 text-orange-500" : "bg-violet-50 text-violet-600"}`}><FileText className="size-5" /></div><div className="flex-1"><p className="text-sm font-extrabold text-slate-900">{exam.course}</p><p className="mt-1 text-xs text-slate-400">{exam.type} · {new Date(`${exam.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</p></div><span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{days(exam.date)} days</span><ChevronRight className="hidden size-4 text-slate-300 sm:block" /></div>) : <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center"><CalendarDays className="mx-auto size-7 text-slate-300" /><p className="mt-3 text-sm font-bold text-slate-600">No upcoming exams yet</p><Link href="/planner" className="mt-2 inline-block text-sm font-bold text-violet-600">Add your first exam</Link></div>}</div></div><div className="rounded-2xl bg-slate-950 p-6 text-white"><div className="flex items-center gap-3"><div className="grid size-10 place-items-center rounded-xl bg-violet-500"><Target className="size-5" /></div><div><h2 className="font-extrabold">Today&apos;s focus</h2><p className="text-xs text-slate-400">A small win counts.</p></div></div><p className="mt-8 text-2xl font-extrabold leading-tight">One focused session is better than none.</p><Link href="/quiz" className="mt-8 flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-sm font-bold transition hover:bg-white/15">Start a quiz <ChevronRight className="size-4" /></Link></div></div><div className="mt-8"><div className="flex items-end justify-between"><div><h2 className="font-extrabold">Quick start</h2><p className="mt-1 text-sm text-slate-400">Choose the tool that fits your study mood.</p></div></div><div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{quickLinks.map(({ href, icon: Icon, label, text }) => <Link key={href} href={href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"><span className="grid size-10 place-items-center rounded-xl bg-violet-50 text-violet-600"><Icon className="size-5" /></span><p className="mt-5 font-extrabold">{label}</p><p className="mt-1 text-sm text-slate-400">{text}</p><ArrowUpRight className="mt-5 size-4 text-slate-300 transition group-hover:text-violet-600" /></Link>)}</div></div></AppShell>
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [results, setResults] = useState<QuizResult[]>([]);
+  const user= getLocalUser(); 
+  useEffect(() => {
+    setExams(getExams());
+    setResults(getQuizResults());
+  }, []);
+  const average = results.length
+    ? Math.round(
+        results.reduce(
+          (sum, item) => sum + (item.score / item.total) * 100,
+          0,
+        ) / results.length,
+      )
+    : 0;
+  // const streak = useMemo(() => {
+  //   const key = (d: Date) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
+  //   const studied = new Set(results.map((r) => key(new Date(r.createdAt))));
+  //   const day = new Date();
+  //   if (!studied.has(key(day))) day.setDate(day.getDate() - 1); // today not done yet is OK
+  //   let count = 0;
+  //   while (studied.has(key(day))) {
+  //     count++;
+  //     day.setDate(day.getDate() - 1);
+  //   }
+  //   return count;
+  // }, [results]);
+  const counts = useMemo(() => getDayCounts(results), [results])
+const { current: streak, best } = useMemo(() => getStreaks(counts), [counts])
+  const upcoming = useMemo(
+    () =>
+      exams
+        .filter(
+          (exam) => new Date(`${exam.date}T12:00:00`).getTime() >= Date.now(),
+        )
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 3),
+    [exams],
+  );
+  const days = (date: string) =>
+    Math.max(
+      0,
+      Math.ceil(
+        (new Date(`${date}T12:00:00`).getTime() - Date.now()) / 86400000,
+      ),
+    );
+  return (
+    <AppShell title="Dashboard" description="Make every study session count.">
+      <SectionHeading
+        eyebrow="Your study space"
+        title={`Welcome back, ${user?.name || "there"}!`}
+        description="Here's your study snapshot."
+      />
+      
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat icon={Flame} label="Study streak" value={`${streak} ${streak === 1 ? "day" : "days"}`} note={best ? `Best: ${best} ${best === 1 ? "day" : "days"}` : "Take a quiz today"} color="orange" />
+        <Stat
+          icon={ClipboardCheck}
+          label="Quizzes taken"
+          value={`${results.length}`}
+          note="Saved to Progress"
+          color="violet"
+        />
+        <Stat
+          icon={TrendingUp}
+          label="Average score"
+          value={`${average}%`}
+          note={
+            results.length ? "Across saved quizzes" : "Take your first quiz"
+          }
+          color="emerald"
+        />
+        <Stat
+          icon={Clock3}
+          label="Next exam"
+          value={upcoming[0] ? `${days(upcoming[0].date)} days` : "—"}
+          note={upcoming[0]?.course || "Add one in Planner"}
+          color="sky"
+        />
+      </div>
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="mt-8"><StudyHeatmap counts={counts} /></div>
+        <PdfUpload />
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-extrabold text-slate-950">Upcoming exams</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Stay ahead of every deadline.
+              </p>
+            </div>
+            <Link
+              href="/planner"
+              className="text-sm font-bold text-violet-600 hover:text-violet-700"
+            >
+              View planner <ArrowUpRight className="ml-1 inline size-4" />
+            </Link>
+          </div>
+          <div className="mt-6 flex flex-col gap-3">
+            {upcoming.length ? (
+              upcoming.map((exam, index) => (
+                <div
+                  key={exam.id}
+                  className="flex items-center gap-4 rounded-xl border border-slate-100 p-4 transition hover:border-violet-100 hover:bg-violet-50/30"
+                >
+                  <div
+                    className={`grid size-11 place-items-center rounded-xl ${index === 0 ? "bg-orange-50 text-orange-500" : "bg-violet-50 text-violet-600"}`}
+                  >
+                    <FileText className="size-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-extrabold text-slate-900">
+                      {exam.course}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {exam.type} ·{" "}
+                      {new Date(`${exam.date}T12:00:00`).toLocaleDateString(
+                        undefined,
+                        { month: "short", day: "numeric" },
+                      )}
+                    </p>
+                  </div>
+                  <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                    {days(exam.date)} days
+                  </span>
+                  <ChevronRight className="hidden size-4 text-slate-300 sm:block" />
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
+                <CalendarDays className="mx-auto size-7 text-slate-300" />
+                <p className="mt-3 text-sm font-bold text-slate-600">
+                  No upcoming exams yet
+                </p>
+                <Link
+                  href="/planner"
+                  className="mt-2 inline-block text-sm font-bold text-violet-600"
+                >
+                  Add your first exam
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="rounded-2xl bg-slate-950 p-6 text-white">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 place-items-center rounded-xl bg-violet-500">
+              <Target className="size-5" />
+            </div>
+            <div>
+              <h2 className="font-extrabold">Today&apos;s focus</h2>
+              <p className="text-xs text-slate-400">A small win counts.</p>
+            </div>
+          </div>
+          <p className="mt-8 text-2xl font-extrabold leading-tight">
+            One focused session is better than none.
+          </p>
+          <Link
+            href="/quiz"
+            className="mt-8 flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-sm font-bold transition hover:bg-white/15"
+          >
+            Start a quiz <ChevronRight className="size-4" />
+          </Link>
+        </div>
+      </div>
+      <div className="mt-8">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="font-extrabold">Quick start</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Choose the tool that fits your study mood.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {quickLinks.map(({ href, icon: Icon, label, text }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
+            >
+              <span className="grid size-10 place-items-center rounded-xl bg-violet-50 text-violet-600">
+                <Icon className="size-5" />
+              </span>
+              <p className="mt-5 font-extrabold">{label}</p>
+              <p className="mt-1 text-sm text-slate-400">{text}</p>
+              <ArrowUpRight className="mt-5 size-4 text-slate-300 transition group-hover:text-violet-600" />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </AppShell>
+  );
 }
-function Stat({ icon: Icon, label, value, note, color }: { icon: typeof Flame; label: string; value: string; note: string; color: string }) { const colors: Record<string, string> = { orange: "bg-orange-50 text-orange-500", violet: "bg-violet-50 text-violet-600", emerald: "bg-emerald-50 text-emerald-600", sky: "bg-sky-50 text-sky-500" }; return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center gap-3"><span className={`grid size-9 place-items-center rounded-xl ${colors[color]}`}><Icon className="size-4" /></span><span className="text-xs font-bold text-slate-400">{label}</span></div><p className="mt-5 text-2xl font-extrabold tracking-tight">{value}</p><p className="mt-1 text-xs font-semibold text-slate-400">{note}</p></div> }
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  note,
+  color,
+}: {
+  icon: typeof Flame;
+  label: string;
+  value: string;
+  note: string;
+  color: string;
+}) {
+  const colors: Record<string, string> = {
+    orange: "bg-orange-50 text-orange-500",
+    violet: "bg-violet-50 text-violet-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    sky: "bg-sky-50 text-sky-500",
+  };
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span
+          className={`grid size-9 place-items-center rounded-xl ${colors[color]}`}
+        >
+          <Icon className="size-4" />
+        </span>
+        <span className="text-xs font-bold text-slate-400">{label}</span>
+      </div>
+      <p className="mt-5 text-2xl font-extrabold tracking-tight">{value}</p>
+      <p className="mt-1 text-xs font-semibold text-slate-400">{note}</p>
+    </div>
+  );
+}
