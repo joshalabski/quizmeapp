@@ -4,7 +4,7 @@
 
 Students waste hours making practice questions, and most only discover their gaps in the exam hall. QuizMe lets you upload a lecture PDF once, generate quizzes from it with Google's **Gemma** model, and track your weak topics, streak and exam countdowns, all stored on your own device.
 
-**Live demo:** https://quizmeapp-blush.vercel.app
+**Live demo:** https://quizmenow.vercel.app
 **Demo video:** _add your YouTube or Loom link here_
 
 ---
@@ -51,8 +51,8 @@ QuizMe calls **Gemma 4** through the Gemini API from a server-side Next.js route
 ### Install
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/joshalabski/quizmeapp.git
+cd quizmeapp
 npm install
 ```
 
